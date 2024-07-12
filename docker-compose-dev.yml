@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - db.env
+      - backend/backend.env
+    volumes:
+      - .:/workspace:cached
+    ports:
+      - 8080:8080
+    expose:
+      - 8080
+    networks:
+      - app
+    command: tail -f /dev/null
+
+  frontend:
+    image: "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye"
+    volumes:
+      - .:/workspace:cached
+    command: tail -f /dev/null
+    ports:
+      - 5173:5173
+    expose:
+      - 5173
+    networks:
+      - app
+
+  db:
+    image: mysql
+    env_file:
+      - db.env
+    ports:
+      - 3306:3306
+    expose:
+      - 3306
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  db:
