@@ -1,0 +1,34 @@
+# Ignore Docker and Docker Compose files
+docker-compose-dev.yml
+docker-compose-prod.yml
+
+# Ignore development and editor-specific files
+.devcontainer/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore version control directories and files
+.git/
+.github/
+
+# Ignore data and temporary files
+backend/data/
+backend/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+
+# Ignore Node.js dependencies and build files for frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Ignore documentation if not needed for build
+frontend/README.md
+
+# Ignore the Dockerfile and any build-related files in the frontend and backend directories
+frontend/Dockerfile
+backend/Dockerfile

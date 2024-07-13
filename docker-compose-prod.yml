@@ -1,0 +1,48 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod
+    env_file:
+      - db.env
+      - backend/backend.env
+    volumes:
+      - data:/app/data
+    expose:
+      - 8080
+    networks:
+      - app
+
+  frontend:
+    build:
+        context: ./frontend
+        dockerfile: Dockerfile
+    ports:
+      - 80:80
+    expose:
+      - 80
+    networks:
+      - app
+
+  db:
+    image: mysql
+    env_file:
+      - db.env
+    ports:
+      - 4306:3306
+    expose:
+      - 3306
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+    enable_ipv6: false
+
+volumes:
+  db:
+  data:

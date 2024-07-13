@@ -1,0 +1,14 @@
+# Ignore Node.js dependencies and build files
+node_modules/
+dist/
+build/
+
+# Ignore editor and development files
+.vscode/
+.idea/
+
+# Ignore documentation if not needed
+README.md
+
+# Ignore environment files
+*.env
