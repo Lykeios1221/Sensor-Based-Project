@@ -13,6 +13,8 @@ services:
       - 8080
     networks:
       - app
+    depends_on:
+      - db
 
   frontend:
     build:
@@ -24,6 +26,8 @@ services:
       - 80
     networks:
       - app
+    depends_on:
+      - backend
 
   db:
     image: mysql
