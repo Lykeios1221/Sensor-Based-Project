@@ -19,7 +19,7 @@ conf = ConnectionConfig(
 )
 
 cached_recipients = []
-recipients_file_path = Path("recipients.json")
+recipients_file_path = Path("data/recipients.json")
 file_lock = asyncio.Lock()
 email_body = """
 <!DOCTYPE html>
@@ -93,6 +93,7 @@ async def get_recipients():
 
 
 async def change_recipients_json(recipients: list[str]):
+    global cached_recipients
     async with file_lock:
         async with aiofiles.open(recipients_file_path, mode="w") as f:
             await f.write(json.dumps(recipients))
@@ -104,10 +105,7 @@ async def change_recipients_json(recipients: list[str]):
 async def send_warning_email(result, data):
     global cached_recipients
     
-    email = await get_recipients()
-
-    if isinstance(email, EmailStr):
-        email = [email]
+    await get_recipients()
 
     email_body = template.render(
         enviroment_anamoly=result, full_data=json.dumps(data, indent=4)

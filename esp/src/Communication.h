@@ -91,6 +91,7 @@ void beginCommunication(const String& token) {
     mqttClient.subscribe(topic.c_str());
     publishMQTTMessage(token, "/token");
 
+
     // Initialize ESP-NOW communication with peer
     esp_now_init();
     memcpy(peerInfo.peer_addr, receiverAddress, 6);
@@ -122,3 +123,4 @@ bool loopCommunication() {
     mqttClient.loop();
     return true;
 }
+

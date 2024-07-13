@@ -2,6 +2,8 @@ import json
 
 import numpy as np
 from pydantic import BaseModel, EmailStr, field_validator
+from sklearn.metrics import make_scorer
+from sklearn.model_selection import GridSearchCV
 from rich_logger import log
 from pathlib import Path
 import joblib
@@ -20,6 +22,7 @@ class AnomalyModel:
         self.scaler_path = Path(scaler_path)
         self.scaler = None
         self.offset = offset
+        self._calculated_offset = 0
 
     def load_model(self):
         if self.path.exists() and self.scaler_path.exists():
@@ -28,22 +31,35 @@ class AnomalyModel:
             log.info(f"Loaded {self.name} model from {self.path}.")
         else:
             log.error(f"Model {self.name} not found at {self.path} or scaler not found on {self.scaler_path}")
-
+            
+            
     def rebuild_model(self, dataset_path):
-
         df = pd.read_csv(dataset_path)
         df_filtered = df[self.features]
+        shuffle_df_filtered = df_filtered.sample(frac=1)
+        train_size = int(0.8 * len(shuffle_df_filtered))
+        train_set = shuffle_df_filtered[:train_size]
+        test_set = shuffle_df_filtered[train_size:]
+        
         if not self.scaler:
             self.scaler = StandardScaler()
-        df_new = self.scaler.fit_transform(df_filtered.to_numpy(dtype="float"))
+        train_set_scaled = self.scaler.fit_transform(train_set.to_numpy(dtype="float"))
+        test_set_scaled = self.scaler.transform(test_set.to_numpy(dtype="float"))
 
-        self.clf = OneClassSVM(kernel="rbf", degree=3, gamma=0.1, nu=0.01) 
-        self.clf.fit(df_new)
-    
+        self.clf = OneClassSVM(kernel="rbf", gamma="auto", nu=0.01)
+        self.clf.fit(train_set_scaled)
+        
+        decision_scores = self.clf.decision_function(test_set_scaled)
+        negative_scores = decision_scores[decision_scores < 0]
+        self._calculated_offset = (negative_scores.min() * -1) if len(negative_scores) > 0 else 0
+        
+        # Save the model and scaler
         joblib.dump(self.clf, self.path)
         joblib.dump(self.scaler, self.scaler_path)
         log.info(f"Rebuilt {self.name} model with features: {self.features}")
-
+        log.info(f"Offset for anomaly detection set to: {self.offset}")
+        
+        
     def predict(self, data):
         if not self.enabled:
             raise ValueError(
@@ -55,7 +71,7 @@ class AnomalyModel:
         new_data = self.scaler.transform(data_array.reshape(1, -1))
 
         if self.clf:
-            score = self.clf.decision_function(new_data) + self.offset
+            score = self.clf.decision_function(new_data) + self.offset + self._calculated_offset
             prediction = bool(score < 0)
             return prediction
         else:
@@ -69,10 +85,10 @@ class EnvironmentModel(AnomalyModel):
     ):
         super().__init__(
             name="Environment",
-            path="env.joblib",
+            path="data/env.joblib",
             features=["temperature", "pressure", "humidity", "gas_concentration"],
-            scaler_path="env_scaler.joblib",
-            offset=2.5,
+            scaler_path="data/env_scaler.joblib",
+            offset=2,
         )
         self.path
 
@@ -81,10 +97,10 @@ class LightModel(AnomalyModel):
     def __init__(self):
         super().__init__(
             name="Light",
-            path="light.joblib",
+            path="data/light.joblib",
             features=["lux"],
-            scaler_path="light_scaler.joblib",
-            offset=3,
+            scaler_path="data/light_scaler.joblib",
+            offset=1,
         )
 
 
@@ -92,7 +108,7 @@ class VibrationModel(AnomalyModel):
     def __init__(self):
         super().__init__(
             name="Vibration",
-            path="vib.joblib",
+            path="data/vib.joblib",
             features=[
                 "x_acceleration",
                 "y_acceleration",
@@ -101,8 +117,8 @@ class VibrationModel(AnomalyModel):
                 "y_rotation",
                 "z_rotation",
             ],
-            scaler_path="vib_scaler.joblib",
-            offset=0.95,
+            scaler_path="data/vib_scaler.joblib",
+            offset=0.3,
         )
 
 
@@ -134,4 +150,4 @@ class ModelForm(BaseModel):
 
 
 class RecipientForm(BaseModel):
-    recipients:EmailStr| list[EmailStr]
+    recipients:list[EmailStr]

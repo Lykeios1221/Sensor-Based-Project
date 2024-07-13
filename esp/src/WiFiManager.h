@@ -6,8 +6,8 @@ String wifi_ssid;
 String wifi_password;
 
 // Setup for attempting to connect WiFi
-const uint CONNECTION_ATTEMPTS = 8;
-const ulong ATTEMPT_TIMEOUT_MS = 4 * 1000;
+const uint CONNECTION_ATTEMPTS = 5;
+const ulong ATTEMPT_TIMEOUT_MS = 10 * 1000;
 
 // Interval between each wake to reconnect WiFi
 const ulong TIMER_WAKEUP_US = 60 * 1000000;
@@ -26,12 +26,14 @@ const int PASSWORD_ADDRESS = 256;
 * @return true if WiFi.status() == WL_CONNECTED, else false
 */
 bool connectWiFi(const String& ssid, const String& password) {
+    WiFi.disconnect(true, true);
     for (int i = 0; i < CONNECTION_ATTEMPTS; ++i) {
         WiFi.begin(ssid, password);
         if (WiFi.waitForConnectResult(ATTEMPT_TIMEOUT_MS) == WL_CONNECTED) {
             return true;
         }
         WiFi.disconnect(false, true);
+        delay(150);
     }
     return false;
 }
@@ -77,8 +79,6 @@ void beginWiFi() {
         delay(1000);
         esp_deep_sleep(TIMER_WAKEUP_US);
     }
-
-    // Find and set WiFi channel so that ESP-NOW and WiFi can be used together
     int chan;
     if (int32_t n = WiFi.scanNetworks()) {
         for (uint8_t i=0; i<n; i++) {
@@ -86,6 +86,7 @@ void beginWiFi() {
                 chan = WiFi.channel(i); } } }
 
     esp_wifi_set_channel(chan, WIFI_SECOND_CHAN_NONE);
+
 }
 
 /**
